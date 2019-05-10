@@ -1,0 +1,23 @@
+Access to Timeseries and Indicator Data
+https://www.mql5.com/en/docs/series
+
+Indexing Direction in Arrays, Buffers and Timeseries
+https://www.mql5.com/en/docs/series/bufferdirection
+
+Timeseries classes
+https://www.mql5.com/en/docs/standardlibrary/technicalindicators/timeseries
+
+matarial
+https://www.mql5.com/en/blogs/post/696207
+
+How to quickly develop and debug a trading strategy in MetaTrader 5
+https://www.mql5.com/en/blogs/post/679581
+
+CopyTickVolume
+https://www.mql5.com/en/docs/series/copytickvolume
+
+Developing multi-module Expert Advisors
+https://www.mql5.com/en/articles/3133
+
+Movement continuation model - searching on the chart and execution statistics
+https://www.mql5.com/en/articles/4222
