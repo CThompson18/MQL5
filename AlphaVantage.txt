@@ -1,0 +1,40 @@
+https://www.alphavantage.co/
+https://www.alphavantage.co/documentation/
+https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey=demo
+https://www.alphavantage.co/support/#support
+https://www.alphavantage.co/premium/
+
+if (!require(BatchGetSymbols)) install.packages('BatchGetSymbols')
+if (!require(quantmod)) install.packages('quantmod') if (!require(changepoint)) install.packages('changepoint') if (!require(ggplot2)) install.packages('ggplot2')
+
+
+library(BatchGetSymbols)
+library(ggplot2)
+library(quantmod)
+library(changepoint)
+
+#Dates
+first.date <- Sys.Date() - (365)
+last.date <- Sys.Date()
+freq.data <- 'daily'
+tickers <- c('EURUSD=X')
+
+#Get Historical Data
+data.out <- BatchGetSymbols(tickers = tickers, 
+                         first.date = first.date,
+                         last.date = last.date, 
+                         freq.data =  freq.data,
+                         cache.folder = file.path(tempdir(), 
+                                                  'BGS_Cache') , do.fill.missing.prices= TRUE)
+
+
+p <- ggplot(data.out$df.tickers, aes(x = ref.date, y = price.close)) p <- p + geom_line() p <- p + facet_wrap(~ticker, scales = 'free_y')
+print(p)
+
+
+#Change Point
+z=data.out[2]$df.tickers$price.adjusted 
+ansmeanvar=cpt.meanvar(z)
+plot(ansmeanvar,cpt.width=3)
+print(ansmeanvar)
+
