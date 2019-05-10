@@ -1,7 +1,7 @@
 //+------------------------------------------------------------------+
 //|                                             Power_Bars_part1.mq4 |
 //+------------------------------------------------------------------+
-#property copyright "4xEdge"
+#property copyright "4xedge"
 #property link      "http://www.4xedge.com"
 
 #property indicator_chart_window
@@ -16,10 +16,10 @@
 #property indicator_color2 CLR_NONE
 //---- buffers
 
-int  Chart=PERIOD_M15;
+int  Chart=PERIOD_H4;
 
 int  TMA1_Periods=21;
-int  TMA1_Shift=21;
+int  TMA1_Shift=5;
 int  TMA1_ApplyTo=7;
 
 
@@ -29,16 +29,16 @@ int HighLow1=0;
 int NumberOfBarsToCalculate1 = 1000;
 int Bars_width1=5;
 
-int PeriodWATR2=15;
-double Kwatr2=1.5;
+int PeriodWATR2=7;
+double Kwatr2=0.7;
 int HighLow2=0;
 int NumberOfBarsToCalculate2 = 1000;
 int Bars_width2=3;
 
-int PeriodWATR3=21;
-double Kwatr3=2.1;
+int PeriodWATR3=18;
+double Kwatr3=1.8;
 int HighLow3=0;
-int NumberOfBarsToCalculate3 = 500;
+int NumberOfBarsToCalculate3 = 1000;
 int Bars_width3=1;
 
 int CountBars=1000;
@@ -133,6 +133,7 @@ int start()
       if (!g) {         
          return(0);
       }      
+
       if (w!=decript("*o]]a`")){
       if (TimeCurrent()-last_e>ErrorTimeOut) {   
          Alert("Your subscription has expired!\nGoto Http://www.4xedge.com to renew.");
@@ -354,7 +355,7 @@ void hist(double &r1[],double &r2[],int PeriodWATR,double Kwatr,int HighLow,int 
 	 }
  }
  
-  
+ 
  //=================================================================================================
 //=================================================================================================
 //====================================   GrabWeb Functions   ======================================
@@ -462,7 +463,7 @@ bool GrabWeb(string strUrl, string& strWebPage)
 	iResult = InternetCloseHandle(hInternet);
 	if (iResult == 0) 
 		return(false);
-		
+   InternetCloseHandle(hSession);
 	return(true);
 }
 string decript(string s){

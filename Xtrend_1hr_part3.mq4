@@ -1,72 +1,71 @@
 //+------------------------------------------------------------------+
-//|                                             Power_Bars_part1.mq4 |
+//|                                                 Xtrend_part3.mq4 |
+//|                                                     Dan Campbell |
 //+------------------------------------------------------------------+
-#property copyright "4xedge"
-#property link      "http://www.4xedge.com"
+#property copyright "Dan Campbell"
+#property link      "WWW.4XEDGE.COM"
 
-#property indicator_chart_window
-#property indicator_buffers 4
-#property indicator_color1 Aqua
-#property indicator_color2 CLR_NONE
-#property indicator_color3 Red
-#property indicator_color4 Lime
+#property indicator_separate_window
+#property indicator_minimum 1
+#property indicator_maximum 100
+#property indicator_buffers 5
+#property indicator_color1 Gold
+#property indicator_color2 Lime
+#property indicator_color3 Green
+#property indicator_color4 Red
+#property indicator_color5 FireBrick
+#property indicator_level1 80
+#property indicator_level2 70
+#property indicator_level3 30
+#property indicator_level4 20
 
-//---- buffers
+int  Chart=PERIOD_H1;
 
-int  Chart=PERIOD_M15;
-string address="";
+int Xtrend_Period=14;
+int Xtrend_Price=PRICE_WEIGHTED;
 
+int CountBars=500;
 
-int  TMA2_Periods=25;
-int  TMA2_Shift=25;
-int  TMA2_ApplyTo=0;
-int  CountBars=1000;
+double UP_Level1=75;
+double UP_Level2=70;
+double DN_Level1=25;
+double DN_Level2=30;
 
-int RISK=21;
-color Text_Color=Yellow;
-int Font_Size=18;
-bool Show_Text=true;
-
-double TMA2_Buffer[];
-double val1[];
-double val2[];
-
-
-
-int    weights[];
-double divisor;
 int ErrorTimeOut=30;
-
+//---- buffers
+double ExtMapBuffer1[];
+double ExtMapBuffer2[];
+double ExtMapBuffer3[];
+double ExtMapBuffer4[];
+double ExtMapBuffer5[];
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
 int init()
   {
 //---- indicators
-   SetIndexStyle(0,DRAW_LINE,STYLE_SOLID,3);
-   SetIndexBuffer(0,TMA2_Buffer);
-   SetIndexStyle(1,DRAW_NONE);
-   SetIndexStyle(2,DRAW_ARROW,EMPTY,4);
-   SetIndexBuffer(2,val1);
-   SetIndexArrow(2,234);
-   SetIndexStyle(3,DRAW_ARROW,EMPTY,4);  
-   SetIndexBuffer(3,val2);
-   SetIndexArrow(3,233);
-   
-   
-//----   
-   SetIndexShift(0,TMA2_Shift);
-    
+   SetIndexStyle(0,DRAW_LINE);
+   SetIndexBuffer(0,ExtMapBuffer1);
+   SetIndexStyle(1,DRAW_LINE);
+   SetIndexBuffer(1,ExtMapBuffer2);
+   SetIndexStyle(2,DRAW_LINE);
+   SetIndexBuffer(2,ExtMapBuffer3);
+   SetIndexStyle(3,DRAW_LINE);
+   SetIndexBuffer(3,ExtMapBuffer4);
+   SetIndexStyle(4,DRAW_LINE);
+   SetIndexBuffer(4,ExtMapBuffer5);
+   IndicatorShortName("4XEdge_RSI_Levels");
+//----
    return(0);
   }
 int deinit()
   {
-   for (int pos=Bars;pos>=0;pos--){
-      ObjectDelete("tag25"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(pos,0));
-   }    
+   ObjectDelete("rsi_line"+Symbol()+Period());
    return(0);
   }
-datetime last_t=0;
+datetime last_t=0;  
 bool access=false;
-datetime last_e=0;
-
+datetime last_e=0;  
 int start()
   {
     int handle=FileOpen("4xedge.ini",FILE_BIN|FILE_READ);
@@ -109,162 +108,42 @@ int start()
       }
       access=true;
    }
-
-    TMA(TMA2_Buffer,TMA2_Periods,TMA2_ApplyTo);
-    Trend();
-   return(0);
+   int w1=WindowFind("4XEdge_RSI_Levels");
+   if (CountBars>Bars){int limit=Bars-Xtrend_Period;}else{limit=CountBars;}
+   for (i=limit;i>=0;i--){
+      ExtMapBuffer1[i]=EMPTY_VALUE;
+      ExtMapBuffer2[i]=EMPTY_VALUE;
+      ExtMapBuffer3[i]=EMPTY_VALUE;
+      ExtMapBuffer4[i]=EMPTY_VALUE;
+      ExtMapBuffer5[i]=EMPTY_VALUE;   
+      double rsi0=iRSI(Symbol(),0,Xtrend_Period,Xtrend_Price,i);
+      double rsi1=iRSI(Symbol(),0,Xtrend_Period,Xtrend_Price,i+1);
+      if (rsi0>UP_Level1) {
+         ExtMapBuffer2[i]=rsi0;
+         if (ExtMapBuffer2[i+1]==EMPTY_VALUE) ExtMapBuffer2[i+1]=rsi1;
+      }else 
+      if (rsi0>UP_Level2 && rsi0<=UP_Level1) {
+         ExtMapBuffer3[i]=rsi0;
+         if (ExtMapBuffer3[i+1]==EMPTY_VALUE) ExtMapBuffer3[i+1]=rsi1;
+      }else  
+      if (rsi0<DN_Level1) {
+         ExtMapBuffer4[i]=rsi0;
+         if (ExtMapBuffer4[i+1]==EMPTY_VALUE) ExtMapBuffer4[i+1]=rsi1;
+      }else       
+      if (rsi0>=DN_Level1 && rsi0<DN_Level2) {
+         ExtMapBuffer5[i]=rsi0;
+         if (ExtMapBuffer5[i+1]==EMPTY_VALUE) ExtMapBuffer5[i+1]=rsi1;
+      }else {
+         ExtMapBuffer1[i]=rsi0;
+         if (ExtMapBuffer1[i+1]==EMPTY_VALUE) ExtMapBuffer1[i+1]=rsi1;        
+      } 
+      ObjectDelete("rsi_line"+Symbol()+Period());
+      ObjectCreate("rsi_line"+Symbol()+Period(),1,w1,Time[i],rsi0);
+      ObjectSet("rsi_line"+Symbol()+Period(),6,Aqua);
   }
-
-void TMA(double &r[],int Periods,int ApplyTo){
-  ArrayResize(weights,Periods);
-  double d_Periods = Periods;
-  int to=MathCeil(d_Periods/2.0);
-
-  for(int i=0; i<to; i++)
-  {
-    weights[i]            = i+1;
-    weights[Periods-1-i]  = i+1;
-  }
-
-  divisor = 0.0;
-  for(int j=0; j<Periods; j++)
-    divisor += weights[j];
-
-   int l=0;
-   if (CountBars>Bars) {l=Bars;}else{l=CountBars;}
-   for(i=l-1; i>=0; i--){
-    double tma_val = 0.0;
-    for(j=0; j<Periods; j++)
-    {
-      double price = getPrice(ApplyTo, i+Periods-j);
-      tma_val += price*weights[j];
-    }
-      r[i] = tma_val/divisor;
-   }
-}
-
-
-double getPrice(int priceType, int index)
-{
-  double price = 0.0;
-  
-  switch(priceType)
-  {
-    case PRICE_OPEN    : price = Open[index];
-                         break;
-  
-    case PRICE_HIGH    : price = High[index];
-                         break;
-  
-    case PRICE_LOW     : price = Low[index];
-                         break;
-  
-    case PRICE_MEDIAN  : price = (High[index]+Low[index])/2.0;
-                         break;
-  
-    case PRICE_TYPICAL : price = (High[index]+Low[index]+Close[index])/3.0;
-                         break;
-
-    case PRICE_WEIGHTED: price = (High[index]+Low[index]+2*Close[index])/4.0;
-                         break;
-
-    
-    case PRICE_CLOSE   : 
-    default            : price = Close[index];
-                         break;
-
-  }
-  
-  return(price);
-}
-
-void Trend()
-  {
-   if (CountBars>=1000) CountBars=950;
-   SetIndexDrawBegin(6,Bars-CountBars+11+1);
-   SetIndexDrawBegin(7,Bars-CountBars+11+1);  
-   int i,shift,counted_bars=IndicatorCounted();
-   int Counter,i1,value10,value11;
-   double value1,x1,x2;
-   double value2,value3;
-   double TrueCount,Range,AvgRange,MRO1,MRO2;
-   double Table_value2[1000];
-   
-   value10=3+RISK*2;
-   x1=67+RISK;
-   x2=33-RISK;
-   value11=value10;
-//----
-   if(Bars<=11+1) return(0);
-//---- initial zero
-   if(counted_bars<11+1)
-   {
-      for(i=1;i<=0;i++) val1[CountBars-i]=0.0;
-      for(i=1;i<=0;i++) val2[CountBars-i]=0.0;
-   }
-//----
-   shift=CountBars-11-1;
-   while(shift>=0)
-     {
-     
-   Counter=shift;
-	Range=0.0;
-	AvgRange=0.0;
-	for (Counter=shift; Counter<=shift+9; Counter++) AvgRange=AvgRange+MathAbs(High[Counter]-Low[Counter]);
-		
-	Range=AvgRange/10;
-	Counter=shift;
-	TrueCount=0;
-	while (Counter<shift+9 && TrueCount<1)
-		{if (MathAbs(Open[Counter]-Close[Counter+1])>=Range*2.0) TrueCount=TrueCount+1;
-		Counter=Counter+1;
-		}
-	if (TrueCount>=1) {MRO1=Counter;} else {MRO1=-1;}
-	Counter=shift;
-	TrueCount=0;
-	while (Counter<shift+6 && TrueCount<1)
-		{if (MathAbs(Close[Counter+3]-Close[Counter])>=Range*4.6) TrueCount=TrueCount+1;
-		Counter=Counter+1;
-		}
-	if (TrueCount>=1) {MRO2=Counter;} else {MRO2=-1;}
-	if (MRO1>-1) {value11=3;} else {value11=value10;}
-	if (MRO2>-1) {value11=4;} else {value11=value10;}
-	value2=100-MathAbs(iWPR(NULL,0,value11,shift)); // PercentR(value11=9)
-	Table_value2[shift]=value2;
-	val1[shift]=0;
-	val2[shift]=0;
-	value3=0;
-	if (value2<x2)
-		{i1=1;
-		while (Table_value2[shift+i1]>=x2 && Table_value2[shift+i1]<=x1){i1++;}
-		if (Table_value2[shift+i1]>x1) 
-			{
-			value3=High[shift]+Range*0.5;
-			val1[shift]=value3;
-			} 
-		}
-	if (value2>x1)
-		{i1=1;
-		while (Table_value2[shift+i1]>=x2 && Table_value2[shift+i1]<=x1){i1++;}
-		if (Table_value2[shift+i1]<x2) 
-			{
-			value3=Low[shift]-Range*0.5;
-			val2[shift]=value3;
-			}
-		}
-      if (val1[shift+1]!=0 || val2[shift+1]!=0 && Show_Text){
-         ObjectDelete("tag25"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0));
-         ObjectCreate("tag25"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0),21,0,Time[shift],Low[shift]-5*Point);       
-         ObjectSetText("tag25"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0),DoubleToStr(Open[shift],Digits),Font_Size,"Arial",Text_Color);
-      }
-      
-      shift--;
-     }
-
    return(0);
   }
  
-  
  //=================================================================================================
 //=================================================================================================
 //====================================   GrabWeb Functions   ======================================

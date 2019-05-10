@@ -1,105 +1,69 @@
 //+------------------------------------------------------------------+
-//|                                             Power_Bars_part1.mq4 |
+//|                                                 Xtrend_part2.mq4 |
+//|                                                     Dan Campbell |
 //+------------------------------------------------------------------+
-#property copyright "4xEdge"
-#property link      "http://www.4xedge.com"
+#property copyright "Dan Campbell"
+#property link      "WWW.4XEDGE.COM"
 
 #property indicator_chart_window
-#property indicator_buffers 8
-#property indicator_color3 C'64,0,0'
-#property indicator_color4 C'0,60,0'
-#property indicator_color5 C'145,0,0'
-#property indicator_color6 C'0,125,0'
-#property indicator_color7 C'255,45,45'
-#property indicator_color8 C'21,255,80'
-#property indicator_color1 Aqua
-#property indicator_color2 CLR_NONE
-//---- buffers
+#property indicator_buffers 4
+#property indicator_color1 C'45,255,45'
+#property indicator_color2 C'255,81,81'
+#property indicator_color3 Aqua
+#property indicator_color4 Aqua
 
-int  Chart=PERIOD_M15;
+int  Chart=PERIOD_M30;
+//---- input parameters
 
-int  TMA1_Periods=21;
-int  TMA1_Shift=21;
-int  TMA1_ApplyTo=7;
+int       T4x3_Periods1=90;
+int       T4x3_Shift1=5;
+int       T4x3_ApplyTo1=0;
+int       T4x3_Bar_Width=1;
 
 
-int PeriodWATR1=11;
-double Kwatr1=1.1000;
-int HighLow1=0;
-int NumberOfBarsToCalculate1 = 1000;
-int Bars_width1=5;
-
-int PeriodWATR2=15;
-double Kwatr2=1.5;
-int HighLow2=0;
-int NumberOfBarsToCalculate2 = 1000;
-int Bars_width2=3;
-
-int PeriodWATR3=21;
-double Kwatr3=2.1;
-int HighLow3=0;
-int NumberOfBarsToCalculate3 = 500;
-int Bars_width3=1;
-
-int CountBars=1000;
+int RISK=25;
+int CountBars=500;
+color Text_Color=Yellow;
+int Font_Size=15;
+bool Show_Text=true;
 
 int ErrorTimeOut=30;
+//---- buffers
+double val1[];
+double val2[];
 
-double ExtMapBuffer1[];
-double ExtMapBuffer2[];
-double ExtMapBuffer3[];
-double ExtMapBuffer4[];
 double ExtMapBuffer5[];
 double ExtMapBuffer6[];
-double ExtMapBuffer7[];
-
-
-
 int    weights[];
 double divisor;
-datetime last_e=0;
-
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
 int init()
   {
-//---- indicators
-   SetIndexStyle(0,DRAW_LINE,STYLE_SOLID,2);
-   SetIndexBuffer(0,ExtMapBuffer7);
-   SetIndexStyle(1,DRAW_NONE);
-   SetIndexStyle(2,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width1);
-   SetIndexBuffer(2,ExtMapBuffer1);
-   SetIndexStyle(3,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width1);
-   SetIndexBuffer(3,ExtMapBuffer2);
-   SetIndexStyle(4,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width2);
-   SetIndexBuffer(4,ExtMapBuffer3);
-   SetIndexStyle(5,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width2);
-   SetIndexBuffer(5,ExtMapBuffer4);
-   SetIndexStyle(6,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width3);
-   SetIndexBuffer(6,ExtMapBuffer5);
-   SetIndexStyle(7,DRAW_HISTOGRAM,STYLE_SOLID,Bars_width3);
-   SetIndexBuffer(7,ExtMapBuffer6);
+//---- indicator line
+   IndicatorBuffers(4);
+      SetIndexStyle(0,DRAW_HISTOGRAM,EMPTY,T4x3_Bar_Width);
+      SetIndexBuffer(0,ExtMapBuffer5);
+      SetIndexStyle(1,DRAW_HISTOGRAM,EMPTY,T4x3_Bar_Width);
+      SetIndexBuffer(1,ExtMapBuffer6);
    
+   SetIndexStyle(2,DRAW_ARROW);
+   SetIndexArrow(2,234);
+   SetIndexStyle(3,DRAW_ARROW);
+   SetIndexArrow(3,233);
+   SetIndexBuffer(2,val1);
+   SetIndexBuffer(3,val2);
+
 //----
-
-   SetIndexDrawBegin(2,PeriodWATR1);
-   SetIndexDrawBegin(3,PeriodWATR1);
-   SetIndexDrawBegin(4,PeriodWATR2);
-   SetIndexDrawBegin(5,PeriodWATR2);
-
-   
-   SetIndexShift(0,TMA1_Shift);
-  
-
-
-    
    return(0);
   }
-int deinit()
-  {
-   return(0);
-  }
-datetime last_t=0;
+//+------------------------------------------------------------------+
+//| ASCTrend1sig                                                     |
+//+------------------------------------------------------------------+
+datetime last_t=0;  
 bool access=false;
-
+datetime last_e=0;
 int start()
   {
     int handle=FileOpen("4xedge.ini",FILE_BIN|FILE_READ);
@@ -142,12 +106,118 @@ int start()
       }
       access=true;
    }
+   TMA4x(ExtMapBuffer5,ExtMapBuffer6,T4x3_Periods1,T4x3_Shift1,T4x3_ApplyTo1);
+   if (CountBars>=1000) CountBars=950;
+   SetIndexDrawBegin(0,Bars-CountBars+11+1);
+   SetIndexDrawBegin(1,Bars-CountBars+11+1);
+   int shift,counted_bars=IndicatorCounted();
+   int Counter,i1,value10,value11;
+   double value1,x1,x2;
+   double value2,value3;
+   double TrueCount,Range,AvgRange,MRO1,MRO2;
+   double Table_value2[1000];
+   
+   value10=3+RISK*2;
+   x1=67+RISK;
+   x2=33-RISK;
+   value11=value10;
+//----
+   if(Bars<=11+1) return(0);
+//---- initial zero
+   if(counted_bars<11+1)
+   {
+      for(i=1;i<=0;i++) val1[CountBars-i]=0.0;
+      for(i=1;i<=0;i++) val2[CountBars-i]=0.0;
+   }
+//----
+   shift=CountBars-11-1;
+   while(shift>=0)
+     {
+     
+   Counter=shift;
+	Range=0.0;
+	AvgRange=0.0;
+	for (Counter=shift; Counter<=shift+9; Counter++) AvgRange=AvgRange+MathAbs(High[Counter]-Low[Counter]);
+		
+	Range=AvgRange/10;
+	Counter=shift;
+	TrueCount=0;
+	while (Counter<shift+9 && TrueCount<1)
+		{if (MathAbs(Open[Counter]-Close[Counter+1])>=Range*2.0) TrueCount=TrueCount+1;
+		Counter=Counter+1;
+		}
+	if (TrueCount>=1) {MRO1=Counter;} else {MRO1=-1;}
+	Counter=shift;
+	TrueCount=0;
+	while (Counter<shift+6 && TrueCount<1)
+		{if (MathAbs(Close[Counter+3]-Close[Counter])>=Range*4.6) TrueCount=TrueCount+1;
+		Counter=Counter+1;
+		}
+	if (TrueCount>=1) {MRO2=Counter;} else {MRO2=-1;}
+	if (MRO1>-1) {value11=3;} else {value11=value10;}
+	if (MRO2>-1) {value11=4;} else {value11=value10;}
+	value2=100-MathAbs(iWPR(NULL,0,value11,shift)); // PercentR(value11=9)
+	Table_value2[shift]=value2;
+	val1[shift]=0;
+	val2[shift]=0;
+	value3=0;
+	if (value2<x2)
+		{i1=1;
+		while (Table_value2[shift+i1]>=x2 && Table_value2[shift+i1]<=x1){i1++;}
+		if (Table_value2[shift+i1]>x1) 
+			{
+			value3=High[shift]+Range*0.5;
+			val1[shift]=value3;
+			} 
+		}
+	if (value2>x1)
+		{i1=1;
+		while (Table_value2[shift+i1]>=x2 && Table_value2[shift+i1]<=x1){i1++;}
+		if (Table_value2[shift+i1]<x2) 
+			{
+			value3=Low[shift]-Range*0.5;
+			val2[shift]=value3;
+			}
+		}
+      if (val1[shift+1]!=0 || val2[shift+1]!=0 && Show_Text){
+         ObjectDelete("tag2"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0));
+         ObjectCreate("tag2"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0),21,0,Time[shift],Low[shift]-5*Point);       
+         ObjectSetText("tag2"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(shift,0),DoubleToStr(Open[shift],Digits),Font_Size,"Arial",Text_Color);
+      }
+      
+      shift--;
+     }
 
-    TMA(ExtMapBuffer7,TMA1_Periods,TMA1_ApplyTo);
-    hist(ExtMapBuffer1,ExtMapBuffer2,PeriodWATR1,Kwatr1,HighLow1,NumberOfBarsToCalculate1);
-    hist(ExtMapBuffer3,ExtMapBuffer4,PeriodWATR2,Kwatr2,HighLow2,NumberOfBarsToCalculate2);
-    hist(ExtMapBuffer5,ExtMapBuffer6,PeriodWATR3,Kwatr3,HighLow3,NumberOfBarsToCalculate3);
    return(0);
+  }
+//+------------------------------------------------------------------+
+
+int deinit()
+  {
+   for (int pos=Bars;pos>=0;pos--){
+      ObjectDelete("tag2"+Symbol()+Period()+DoubleToStr(RISK,0)+DoubleToStr(pos,0));
+   }
+   return(0);
+  }
+  
+void TMA4x(double &r[],double &r1[],int Periods1,int Shift1,int ApplyTo1)
+  {
+    int l=0;
+    if (CountBars>Bars) {l=Bars;}else{l=CountBars;}
+        double a[];
+    ArrayResize(a,l);
+    ArraySetAsSeries(a,true);
+    TMA(a,Periods1,ApplyTo1);
+    for (int i=l;i>=0;i--){
+    double a1=a[i+1+Shift1];      
+      if (Open[i+1]>a1 && Close[i+1]>a1) {
+         r[i]=MathMax(Open[i],Close[i]);
+         r1[i]=MathMin(Open[i],Close[i]);
+      }else if (Open[i+1]<a1 && Close[i+1]<a1){
+         r[i]=MathMin(Open[i],Close[i]);
+         r1[i]=MathMax(Open[i],Close[i]);      
+      }
+    }
   }
 
 void TMA(double &r[],int Periods,int ApplyTo){
@@ -177,8 +247,6 @@ void TMA(double &r[],int Periods,int ApplyTo){
       r[i] = tma_val/divisor;
    }
 }
-
-
 double getPrice(int priceType, int index)
 {
   double price = 0.0;
@@ -211,150 +279,8 @@ double getPrice(int priceType, int index)
   }
   
   return(price);
-}
-
-void hist(double &r1[],double &r2[],int PeriodWATR,double Kwatr,int HighLow,int NumberOfBarsToCalculate)
-  {
-   double LineMinBuffer[];
-   double LineMidBuffer[];
-   ArrayResize(LineMinBuffer,NumberOfBarsToCalculate);
-   ArrayResize(LineMidBuffer,NumberOfBarsToCalculate);
-   int      i,shift,TrendMin,TrendMax,TrendMid;
-   double   SminMin0,SmaxMin0,SminMin1,SmaxMin1,SumRange,dK,WATR0,WATRmax,WATRmin,WATRmid;
-   double   SminMax0,SmaxMax0,SminMax1,SmaxMax1,SminMid0,SmaxMid0,SminMid1,SmaxMid1;
-   double   linemin,linemax,linemid,Stoch1,Stoch2,bsmin,bsmax;
-   //raduga : Variable theDelta - has a differense between two bsmin/max lines
-   double theDelta;
-   
-   double prev_y = 0,prev_b = 0;
-   	
-   for(shift=NumberOfBarsToCalculate-1;shift>=0;shift--)
-   {	
-	SumRange=0;
-	//raduga: initialization because of ZERO-DEVIDE ERROR
-	//===============================
-	Stoch1 = 0.0;
-	Stoch2 = 0.0;
-	//===============================
-	for (i=PeriodWATR-1;i>=0;i--)
-	    { 
-       dK = 1+1.0*(PeriodWATR-i)/PeriodWATR;
-       //raduga: MathAbs has no sense ragarding High - Low... Probably Close - open !!!!
-       //SumRange+= dK*MathAbs(High[i+shift]-Low[i+shift]);
-       SumRange+= dK*(High[i+shift]-Low[i+shift]);
-       }
-	WATR0 = SumRange/PeriodWATR;
-	
-	WATRmax=MathMax(WATR0,WATRmax);
-	if (shift==NumberOfBarsToCalculate-1-PeriodWATR) WATRmin=WATR0;
-	WATRmin=MathMin(WATR0,WATRmin);
-	
-	int StepSizeMin=MathRound(Kwatr*WATRmin/Point);
-	int StepSizeMax=MathRound(Kwatr*WATRmax/Point);
-	int StepSizeMid=MathRound(Kwatr*0.5*(WATRmax+WATRmin)/Point);
-		
-	if (HighLow>0)
-	  {
-	  SmaxMin0=Low[shift]+2*StepSizeMin*Point;
-	  SminMin0=High[shift]-2*StepSizeMin*Point;
-	  
-	  SmaxMax0=Low[shift]+2*StepSizeMax*Point;
-	  SminMax0=High[shift]-2*StepSizeMax*Point;
-	  
-	  SmaxMid0=Low[shift]+2*StepSizeMid*Point;
-	  SminMid0=High[shift]-2*StepSizeMid*Point;
-	  
-	  if(Close[shift]>SmaxMin1) TrendMin=1; 
-	  if(Close[shift]<SminMin1) TrendMin=-1;
-	  
-	  if(Close[shift]>SmaxMax1) TrendMax=1; 
-	  if(Close[shift]<SminMax1) TrendMax=-1;
-	  
-	  if(Close[shift]>SmaxMid1) TrendMid=1; 
-	  if(Close[shift]<SminMid1) TrendMid=-1;
-	  }
-	 
-	if (HighLow == 0)
-	  {
-	  SmaxMin0=Close[shift]+2*StepSizeMin*Point;
-	  SminMin0=Close[shift]-2*StepSizeMin*Point;
-	  
-	  SmaxMax0=Close[shift]+2*StepSizeMax*Point;
-	  SminMax0=Close[shift]-2*StepSizeMax*Point;
-	  
-	  SmaxMid0=Close[shift]+2*StepSizeMid*Point;
-	  SminMid0=Close[shift]-2*StepSizeMid*Point;
-	  
-	  if(Close[shift]>SmaxMin1) TrendMin=1; 
-	  if(Close[shift]<SminMin1) TrendMin=-1;
-	  
-	  if(Close[shift]>SmaxMax1) TrendMax=1; 
-	  if(Close[shift]<SminMax1) TrendMax=-1;
-	  
-	  if(Close[shift]>SmaxMid1) TrendMid=1; 
-	  if(Close[shift]<SminMid1) TrendMid=-1;
-	  }
-	 	
-	  if(TrendMin>0 && SminMin0<SminMin1) SminMin0=SminMin1;
-	  if(TrendMin<0 && SmaxMin0>SmaxMin1) SmaxMin0=SmaxMin1;
-		
-	  if(TrendMax>0 && SminMax0<SminMax1) SminMax0=SminMax1;
-	  if(TrendMax<0 && SmaxMax0>SmaxMax1) SmaxMax0=SmaxMax1;
-	  
-	  if(TrendMid>0 && SminMid0<SminMid1) SminMid0=SminMid1;
-	  if(TrendMid<0 && SmaxMid0>SmaxMid1) SmaxMid0=SmaxMid1;
-	  
-	  
-	  if (TrendMin>0) linemin=SminMin0+StepSizeMin*Point;
-	  if (TrendMin<0) linemin=SmaxMin0-StepSizeMin*Point;
-	  
-	  if (TrendMax>0) linemax=SminMax0+StepSizeMax*Point;
-	  if (TrendMax<0) linemax=SmaxMax0-StepSizeMax*Point;
-	  
-	  if (TrendMid>0) linemid=SminMid0+StepSizeMid*Point;
-	  if (TrendMid<0) linemid=SmaxMid0-StepSizeMid*Point;
-	  
-	  bsmin=linemax-StepSizeMax*Point;
-	  bsmax=linemax+StepSizeMax*Point;
-	  //raduga: ZERO-DEVIDE-ERROR
-	  //=============================
-	  theDelta = bsmax-bsmin;
-	  if(theDelta != 0) 
-	  {
-	     Stoch1=NormalizeDouble((linemin-bsmin)/theDelta,6);
-	     Stoch2=NormalizeDouble((linemid-bsmin)/theDelta,6);
-	  }
-	  //==============================   
-	  prev_y = (Stoch1 - Stoch2);
-	  if(prev_y<0.0){
-	     LineMinBuffer[shift] = prev_y;
-	     LineMidBuffer[shift] = 0;
-	     r1[shift]=MathMax(Open[shift],Close[shift]);
-	     r2[shift]=MathMin(Close[shift],Open[shift]);
-	     }
-	  else if(prev_y>0.0){
-	     LineMidBuffer[shift] = prev_y;
-	     LineMinBuffer[shift] = 0;
-	     r1[shift]=MathMin(Open[shift],Close[shift]);
-	     r2[shift]=MathMax(Close[shift],Open[shift]);
-	     }
-	  
-	  //prev_y = Stoch1;
-	  //prev_b = Stoch2;
-	  
-	  
-	  SminMin1=SminMin0;
-	  SmaxMin1=SmaxMin0;
-	  
-	  SminMax1=SminMax0;
-	  SmaxMax1=SmaxMax0;
-	  
-	  SminMid1=SminMid0;
-	  SmaxMid1=SmaxMid0;
-	 }
- }
+}  
  
-  
  //=================================================================================================
 //=================================================================================================
 //====================================   GrabWeb Functions   ======================================
