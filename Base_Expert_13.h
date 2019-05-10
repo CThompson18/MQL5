@@ -48,6 +48,8 @@ extern double TrailingStop = 35;
 extern double TrailingStep = 5;
 
 
+
+
 //DataDisplay function global variables
 //*********************************************************************
 extern int glb_right_edge_shift = 175;
@@ -83,27 +85,20 @@ extern int option = 0;
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-//---
-   
-//---
-   return(INIT_SUCCEEDED);
-  }
 void OnTick()
    {
       //---
       if(TrailingStop > 0 && TrailingStart > 0) TrailOrder (TrailingStart, TrailingStop);
-      Lots();
+      //glbCurrentAskBid = 0.00000;
       glbCurrent = SymbolInfoDouble(Symbol(),SYMBOL_BID);
-      //Comment(DoubleToString(glblTradeLots));
-      glblTradeLots = .01;
+      //glblTradeLots = NormalizeDouble(((AccountBalance() / MarketInfo(Symbol(),MODE_MARGINREQUIRED)) * glbLotSize),0);      
+      glblTradeLots = 1;
+      
       Prices();
       DataDisplay();
       Tickets();
       PlaceOrders();
-      
-      //Comment(StringFormat("Show ticket\nTicket = %d",glbTicket,0));
+     
    }
 
 //Prices from Base
@@ -200,14 +195,6 @@ void PlaceOrders()
 
    }
    
-//Lots
-//***************************************************************************************************************************************************  
- void Lots()
-   { 
-      double dblLotsSize = MarketInfo(Symbol(),MODE_MARGINREQUIRED);
-      double dblAccountSize = AccountBalance();
-      glblTradeLots = NormalizeDouble(dblAccountSize / dblLotsSize,2); 
-   }
 //+------------------------------------------------------------------+
 int deinit()
 	{
@@ -345,8 +332,8 @@ void TrailOrder(double Trailingstart,double Trailingstop)
 		      vPoint = Point; 
 		      vSlippage = Slippage;
 		   }
-		 //Comment(StringFormat("Show prices\nTrailingstart = %G\nTrailingstop = %G\ntStopLoss = %G\nvPoint = %G\nvSlippage = %G\nsl = %d",Trailingstart,Trailingstop,tStopLoss,vPoint,vSlippage,sl,0));  
-	
+		 Comment(StringFormat("Show prices\nTrailingstart = %G\nTrailingstop = %G\ntStopLoss = %G\nvPoint = %G\nvSlippage = %G\nsl = %d",Trailingstart,Trailingstop,tStopLoss,vPoint,vSlippage,sl,0));  
+/*		
 		RefreshRates();
 		if(OrdersTotal()>0)
 			{
@@ -357,11 +344,10 @@ void TrailOrder(double Trailingstart,double Trailingstop)
 							{
 								if(OrderType()==OP_BUY)
 									{
-										if(Ask > NormalizeDouble(OrderOpenPrice() + TrailingStart * vPoint,Digits) && tStopLoss < NormalizeDouble(Bid - (TrailingStop + TrailingStep ) * vPoint ,Digits))
+										if(Ask> NormalizeDouble(OrderOpenPrice()+TrailingStart* vPoint,Digits) && tStopLoss < NormalizeDouble(Bid-(TrailingStop+TrailingStep)*vPoint,Digits))
 											{
 												tStopLoss = NormalizeDouble(Bid-TrailingStop*vPoint,Digits);
-												Comment(StringFormat("Show StopLoss\nStopLoss = %G\nOP_BUY = %d",tStopLoss,0,0));
-												//ticket = OrderModify(OrderTicket(),OrderOpenPrice(),tStopLoss,OrderTakeProfit(),0,Blue);
+												ticket = OrderModify(OrderTicket(),OrderOpenPrice(),tStopLoss,OrderTakeProfit(),0,Blue);
 												if (ticket > 0)
 													{
 														Print ("TrailingStop #2 Activated: ", OrderSymbol(), ": SL", tStopLoss, ": Bid", Bid);
@@ -375,8 +361,7 @@ void TrailOrder(double Trailingstart,double Trailingstop)
 										if (Bid < NormalizeDouble(OrderOpenPrice()-TrailingStart*vPoint,Digits) && (sl >(NormalizeDouble(Ask+(TrailingStop+TrailingStep)*vPoint,Digits))) || (OrderStopLoss()==0))
 											{
 												tStopLoss = NormalizeDouble(Ask+TrailingStop*vPoint,Digits);
-												Comment(StringFormat("Show StopLoss\nStopLoss = %G\nOP_SELL = %d",tStopLoss,0,0));
-												//ticket = OrderModify(OrderTicket(),OrderOpenPrice(),tStopLoss,OrderTakeProfit(),0,Red);
+												ticket = OrderModify(OrderTicket(),OrderOpenPrice(),tStopLoss,OrderTakeProfit(),0,Red);
 												if (ticket > 0)
 													{
 														Print ("Trailing #2 Activated: ", OrderSymbol(), ": SL ",tStopLoss, ": Ask ", Ask);
@@ -387,7 +372,7 @@ void TrailOrder(double Trailingstart,double Trailingstop)
 							}
 					}
 			}
-			
+			*/
 	}
 //https://www.cashbackforex.com/en-us/school/tabid/426/ID/435771/trailingStop-with-profit-threshold
 //CloseAll
@@ -661,5 +646,4 @@ string error(int err)
 			}
 	}
 
- 
  

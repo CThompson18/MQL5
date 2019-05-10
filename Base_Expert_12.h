@@ -146,7 +146,7 @@ void Prices()
 							{i1++;}
 						if (Table_value2[shift + i1] < x2) 
 							{
-								glbBidPrice = Low[shift] + Range * 0.5;
+								glbBidPrice = High[shift] + Range * 0.5;
 								glbBidDateTime = TimeCurrent();
 							}
 					}      
@@ -180,7 +180,6 @@ void PlaceOrders()
       datetime CurrentDateTime = TimeCurrent();
       if(glbTicket == 0){if (glbAskPrice > glbCurrent){Order_Ask();}}
       if(glbTicket == 0){if (glbBidPrice < glbCurrent){Order_Bid();}}
-      
       
       if(glbBidPrice != 0)
          {
