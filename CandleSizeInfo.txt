@@ -1,0 +1,348 @@
+
+
+
+//--- Description
+#property description "Script creates \ "Text \"."
+//--- input parameters display window during script startup
+#property script_show_inputs
+
+
+//--- Script parameter input
+input int               IHistoryBars   =  25;            // Check Historical Data
+input string            InpFont        =  "Tahoma";      // Font Type
+input int               InpFontSize    =  10;            // Size of fonts
+input color             UpColor        =  clrGold;       // Color Up
+input color             DwColor        =  clrRoyalBlue;  // Color Dw
+input color             HLColor        =  clrAqua;       // Color Center
+input bool              InpBack        =  false;         // Background object
+input bool              InpSelection   =  false;         // Highlight to move
+input bool              InpHidden      =  true;          // Hide in object list
+input bool              WithDigit      =  true;          // Hide in object list
+input long              InpZOrder      =  0;             // Priority for mouse click
+
+
+int digits=0,extradig=0;
+
+double            InpAngle    =     0.0;           // Angle of inclination in degrees
+ENUM_ANCHOR_POINT InpAnchor   =     ANCHOR_CENTER; // Type of Anchorage
+double   gBars                =     0;
+double   gTotalRates          =     0;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnInit()
+  {
+   digits=MathPow(10,_Digits-extradig);
+   if(WithDigit) extradig=1;
+
+  }
+//+------------------------------------------------------------------+
+//| Move anchor point                                                |
+//+------------------------------------------------------------------+
+bool TextMove(const long   chart_ID=0,  // Chart ID
+              const string name="Text", // object name
+              datetime     time=0,      // time anchor point coordinate
+              double       price=0)     // price anchor point coordinate
+  {
+//--- if the position of the point is not set, move to the current bar having the Bid price
+   if(!time)
+      time=TimeCurrent();
+   if(!price)
+      price=SymbolInfoDouble(Symbol(),SYMBOL_BID);
+//--- resets the error value
+   ResetLastError();
+//--- move the anchor point
+   if(!ObjectMove(chart_ID,name,0,time,price))
+     {
+      Print(__FUNCTION__,
+            ": failed to move anchor point! Error Code = ",GetLastError());
+      return(false);
+     }
+//--- success in execution
+   return(true);
+  }
+//+------------------------------------------------------------------+
+//| Check anchor point values and set default values for those empty |
+//|                                                                  |
+//+------------------------------------------------------------------+
+void ChangeTextEmptyPoint(datetime &time,double &price)
+  {
+//--- if the point time is not set, it will be in the current bar
+   if(!time)
+      time=TimeCurrent();
+//--- if the point price is not set, it will have bid value
+   if(!price)
+      price=SymbolInfoDouble(Symbol(),SYMBOL_BID);
+  }
+//+------------------------------------------------------------------+
+//| Custom indicator deinitialization function                       |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+   ClearMyObjects();
+   Print("Deinit Value Chart, reason = "+IntegerToString(reason));
+  }
+//+------------------------------------------------------------------+
+//| Value Chart                                                      | 
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &Time[],
+                const double &Open[],
+                const double &High[],
+                const double &Low[],
+                const double &Close[],
+                const long &TickVolume[],
+                const long &Volume[],
+                const int &Spread[])
+  {
+
+//--- define how texts are often displayed
+   int scale=(int)ChartGetInteger(0,CHART_SCALE);
+   int bars=(int)ChartGetInteger(0,CHART_VISIBLE_BARS)+3;
+   double value;
+   digits=MathPow(10,_Digits-extradig);
+
+//--- set the step
+   int step=1;
+   switch(scale)
+     {
+      case 0:
+         step=12;
+         break;
+      case 1:
+         step=6;
+         break;
+      case 2:
+         step=4;
+         break;
+      case 3:
+         step=2;
+         break;
+     }
+   gTotalRates=rates_total;
+   gBars=bars;
+   for(int i=rates_total-1;i>rates_total-bars;i-=step) 
+     {
+      if(Close[i]>Open[i])
+        {
+         // bullish candle
+         value=(Close[i]-Open[i])*digits;
+         //Print(Close[i]-Open[i], "->", Close[i]-Open[i]*digits);
+
+         TextCreate(0,"Text_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],(Close[i]+Open[i])/2,DoubleToString(value,extradig),InpFont,InpFontSize,
+                    UpColor,InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder);
+
+         value=(Open[i]-Low[i]) *digits;
+         if(!TextCreate(0,"TextL_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],Low[i],DoubleToString(value,extradig),InpFont,InpFontSize,
+            HLColor,InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder)) {       return 0;     }
+
+         value=(High[i]-Close[i]) *digits;
+         if(!TextCreate(ChartID(),"TextH_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],High[i],DoubleToString(value,extradig),InpFont,InpFontSize,
+            HLColor,InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder)) {       return 0;     }
+
+           } else {
+
+         value=(Open[i]-Close[i]) *digits;
+         if(!TextCreate(ChartID(),"Text_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],(Close[i]+Open[i])/2,DoubleToString(value,extradig),InpFont,InpFontSize,
+            DwColor,-InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder)) {      return 0;      }
+
+         value=(Close[i]-Low[i]) *digits;
+         if(!TextCreate(ChartID(),"TextL_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],Low[i],DoubleToString(value,extradig),InpFont,InpFontSize,
+            HLColor,InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder)) {       return 0;     }
+
+         value=(High[i]-Open[i]) *digits;
+         if(!TextCreate(ChartID(),"TextH_"+(string)i+(string)PERIOD_CURRENT,0,Time[i],High[i],DoubleToString(value,extradig),InpFont,InpFontSize,
+            HLColor,InpAngle,InpAnchor,InpBack,InpSelection,InpHidden,InpZOrder)) {       return 0;     }
+        }
+
+     }
+   ChartRedraw();
+   return 0;
+  }
+//+------------------------------------------------------------------+
+//|  Trace Arrow Function                                            |
+//+------------------------------------------------------------------+
+void Trace(string name,int sens,double price,datetime time,color couleur)
+  {
+   ObjectCreate(0,name,OBJ_ARROW,0,time,price);
+   if(sens==1)
+      ObjectSetInteger(0,name,OBJPROP_ARROWCODE,233);
+   if(sens==-1)
+      ObjectSetInteger(0,name,OBJPROP_ARROWCODE,234);
+   ObjectSetInteger(0,name,OBJPROP_COLOR,couleur);
+   ObjectSetInteger(0,name,OBJPROP_WIDTH,5);
+  }
+//+------------------------------------------------------------------+
+//|   Delete Arrow Function                                          |
+//+------------------------------------------------------------------+  
+void ClearMyObjects() 
+  {
+   string name;
+   int scale=(int)ChartGetInteger(0,CHART_SCALE);
+   int bars=(int)ChartGetInteger(0,CHART_VISIBLE_BARS)+3;
+   double value;
+   digits=MathPow(10,_Digits-extradig);
+   int step=1;
+   switch(scale)
+     {
+      case 0:
+         step=12;
+         break;
+      case 1:
+         step=6;
+         break;
+      case 2:
+         step=4;
+         break;
+      case 3:
+         step=2;
+         break;
+     }
+   for(int i=gTotalRates-1;i>gTotalRates-bars;i-=step) 
+     {
+      if(!TextDelete(ChartID(),"Text_"+(string)i+(string)PERIOD_CURRENT)){}
+      if(!TextDelete(ChartID(),"TextH_"+(string)i+(string)PERIOD_CURRENT)){}
+      if(!TextDelete(ChartID(),"TextL_"+(string)i+(string)PERIOD_CURRENT)){}
+      //--- redraw the chart
+     }
+   ChartRedraw();
+
+  }
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| Change object text                                               |
+//+------------------------------------------------------------------+
+bool TextChange(const long   chart_ID=0,  // Chart ID
+                const string name="Text", // object name
+                const string text="Text") // text
+  {
+//--- resets the error value
+   ResetLastError();
+//--- change object text
+   if(!ObjectSetString(chart_ID,name,OBJPROP_TEXT,text))
+     {
+      Print(__FUNCTION__,
+            ": failed to change text! Error Code = ",GetLastError());
+      return(false);
+     }
+//--- success in execution
+   return(true);
+  }
+//+------------------------------------------------------------------+
+//| Delete Text Object                                               |
+//+------------------------------------------------------------------+
+bool TextDelete(const long   chart_ID=0,  // Graph Id
+                const string name="Text") // object name
+  {
+//--- resets the error value
+   ResetLastError();
+//--- delete the object
+   if(!ObjectDelete(chart_ID,name))
+     {
+      Print(__FUNCTION__,
+            ": failed to delete object \ "Text \"! Error Code = ",GetLastError());
+      return(false);
+     }
+//--- success in execution
+   return(true);
+  }
+//+------------------------------------------------------------------+
+//| Creating Text Object                                             |
+//+------------------------------------------------------------------+
+bool TextCreate(const long              chart_ID=0,               // Chart ID
+                const string            name="Text",              // object name
+                const int               sub_window=0,             // sub-window index
+                datetime                time=0,                   // anchor point of time
+                double                  price=0,                  // price anchor point
+                const string            text="Text",              // the text itself
+                const string            font="Arial",             // fonte
+                const int               font_size=10,             // font_size
+                const color             clr=clrRed,               // color
+                const double            angle=0.0,                // text tilt
+                const ENUM_ANCHOR_POINT anchor=ANCHOR_CENTER,     // type of anchorage
+                const bool              back=false,               // in the background
+                const bool              selection=false,          // highlight to move
+                const bool              hidden=true,              // hide in object list
+                const long              z_order=0)                // priority to click the mouse
+  {
+
+   if(ObjectFind(chart_ID,name)==-1) 
+     {
+
+      //--- set the coordinates of anchor points, if they are not defined
+      //--- resets the error value
+      ResetLastError();
+      //--- create Text object
+      if(!ObjectCreate(chart_ID,name,OBJ_TEXT,sub_window,time,price)) 
+        {
+         Print(__FUNCTION__,
+               ": failed to create object \ "Text \"! Error Code = ",GetLastError());
+         return(false);
+        }
+      //--- set the text
+      ObjectSetString(chart_ID,name,OBJPROP_TEXT,text);
+      //--- set the source text
+      ObjectSetString(chart_ID,name,OBJPROP_FONT,font);
+      //--- set font size
+      ObjectSetInteger(chart_ID,name,OBJPROP_FONTSIZE,font_size);
+      //--- set the angle of the text
+      ObjectSetDouble(chart_ID,name,OBJPROP_ANGLE,angle);
+      //--- Anchor type definition
+      ObjectSetInteger(chart_ID,name,OBJPROP_ANCHOR,anchor);
+      ObjectSetInteger(chart_ID,name,OBJPROP_ALIGN,ALIGN_CENTER);
+
+      //--- set color
+      ObjectSetInteger(chart_ID,name,OBJPROP_COLOR,clr);
+      //--- foreground (false) or background (true)
+      ObjectSetInteger(chart_ID,name,OBJPROP_BACK,back);
+      //--- enable (true) or disable (false) the way to move the object with the mouse
+      ObjectSetInteger(chart_ID,name,OBJPROP_SELECTABLE,selection);
+      ObjectSetInteger(chart_ID,name,OBJPROP_SELECTED,selection);
+      //--- hide (true) or display (false) the name of the chart object in the object list 
+      ObjectSetInteger(chart_ID,name,OBJPROP_HIDDEN,hidden);
+      //--- set the priority to receive the event with a mouse click on the chart
+      ObjectSetInteger(chart_ID,name,OBJPROP_ZORDER,z_order);
+      ObjectSetDouble(chart_ID,name,OBJPROP_PRICE,price);
+      ObjectSetInteger(chart_ID,name,OBJPROP_TIME,time);
+
+      //--- success in execution
+      return(true);
+        } else {
+      ChangeTextEmptyPoint(time,price);
+
+      ObjectSetString(chart_ID,name,OBJPROP_TEXT,text);
+      ObjectSetInteger(chart_ID,name,OBJPROP_COLOR,clr);
+      ObjectSetInteger(chart_ID,name,OBJPROP_ANCHOR,anchor);
+      ObjectSetInteger(chart_ID,name,OBJPROP_ALIGN,ALIGN_CENTER);
+      ObjectSetDouble(chart_ID,name,OBJPROP_ANGLE,angle);
+      ObjectSetDouble(chart_ID,name,OBJPROP_PRICE,price);
+      ObjectSetInteger(chart_ID,name,OBJPROP_TIME,time);
+      ObjectSetString(chart_ID,name,OBJPROP_FONT,font);
+      //--- set font size
+      ObjectSetInteger(chart_ID,name,OBJPROP_FONTSIZE,font_size);
+      ObjectSetInteger(chart_ID,name,OBJPROP_YDISTANCE,100);
+
+/*ObjectSetString(chart_ID,name,OBJPROP_FONT,Font);
+      ObjectSetInteger(chart_ID,name,OBJPROP_FONTSIZE,Size);*/
+      return (true);
+     }
+
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnChartEvent(const int id,         // Event ID
+                  const long& lparam,   // Parameter of type long event
+                  const double& dparam, // Parameter of type double event
+                  const string& sparam  // Parameter of type string events
+                  )
+  {
+   if(id==CHARTEVENT_CHART_CHANGE)
+     {
+      ClearMyObjects();
+     }
+
+  }
+//+------------------------------------------------------------------+
